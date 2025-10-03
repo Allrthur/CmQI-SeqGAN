@@ -17,16 +17,17 @@ class Generator(nn.Module):
         self.max_seq_len = max_seq_len
         self.vocab_size = vocab_size
         self.gpu = gpu
-
         self.embeddings = nn.Embedding(vocab_size, embedding_dim)
         self.gru = nn.GRU(embedding_dim, hidden_dim)
+        # self.lstm = nn.LSTM(embedding_dim, hidden_dim)
         self.gru2out = nn.Linear(hidden_dim, vocab_size)
+        # self.lstm2out = nn.Linear(hidden_dim, vocab_size)
 
         # initialise oracle network with N(0,1)
         # otherwise variance of initialisation is very small => high NLL for data sampled from the same model
         if oracle_init:
             for p in self.parameters():
-                init.normal(p, 0, 1)
+                nn.init.normal_(p, 0, 1)
 
     def init_hidden(self, batch_size=1):
         h = autograd.Variable(torch.zeros(1, batch_size, self.hidden_dim))
@@ -44,7 +45,9 @@ class Generator(nn.Module):
         emb = self.embeddings(inp)                              # batch_size x embedding_dim
         emb = emb.view(1, -1, self.embedding_dim)               # 1 x batch_size x embedding_dim
         out, hidden = self.gru(emb, hidden)                     # 1 x batch_size x hidden_dim (out)
+        # out, hidden = self.lstm(emb, hidden)                     # 1 x batch_size x hidden_dim (out)
         out = self.gru2out(out.view(-1, self.hidden_dim))       # batch_size x vocab_size
+        # out = self.lstm2out(out.view(-1, self.hidden_dim))       # batch_size x vocab_size
         out = F.log_softmax(out, dim=1)
         return out, hidden
 
